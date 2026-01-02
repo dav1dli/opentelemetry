@@ -1,0 +1,59 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--exec", "db.adminCommand('ping')", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  python-service-green:
+    build:
+      context: ./python-service-green
+      dockerfile: Dockerfile
+    container_name: python-service-green
+    ports:
+      - "5001:5001"
+    environment:
+      - DB_URI=mongodb://mongodb:27017
+      - PORT=5001
+    depends_on:
+      - mongodb
+  node-service-blue:
+    build: ./node-service-blue
+    container_name: node-service-blue
+    environment:
+      - DB_URI=mongodb://mongodb:27017
+      - PORT=3020
+    depends_on:
+      - mongodb
+  python-service-gateway:
+    build:
+      context: ./python-service-gateway
+      dockerfile: Dockerfile
+    container_name: python-service-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - UPSTREAM_SERVICES=http://python-service-green:5001,http://node-service-blue:3020
+      - PORT=5000
+    depends_on:
+      - python-service-green
+      - node-service-blue
+  node-frontend:
+    build: ./node-frontend
+    ports:
+      - "8080:8080"
+    environment:
+      - GATEWAY_URL=http://python-service-gateway:5000
+      - PORT=8080
+    depends_on:
+      - python-service-gateway
+volumes:
+  mongo_data:
