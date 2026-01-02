@@ -12,7 +12,22 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686" # Web UI
+      - "4317:4317"  # OTLP gRPC receiver
+      - "4318:4318"  # OTLP HTTP receiver
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "8888:8888"   # Prometheus metrics
+    depends_on:
+      - jaeger
   python-service-green:
     build:
       context: ./python-service-green
@@ -55,6 +70,9 @@ services:
     environment:
       - GATEWAY_URL=http://python-service-gateway:5000
       - PORT=8080
+      - OTEL_SERVICE_NAME=node-frontend
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318 # Sending direct to Jaeger for simplicity
+      - NODE_OPTIONS=--require @opentelemetry/auto-instrumentations-node/register
     depends_on:
       - python-service-gateway
 volumes:
