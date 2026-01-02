@@ -1,5 +1,3 @@
-const pkg = require("./package.json");
-require("../opentelemetry-js")(pkg.name, pkg.version);
 const path = require("path");
 
 const createError = require("http-errors");

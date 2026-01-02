@@ -26,10 +26,10 @@ services:
     depends_on:
       - mongodb
   node-service-blue:
-    build:
-      context: .
-      dockerfile: node-service-blue/Dockerfile
+    build: ./node-service-blue
     container_name: node-service-blue
+    ports:
+      - "3020:3020"
     environment:
       - DB_URI=mongodb://mongodb:27017
       - PORT=3020
@@ -49,9 +49,7 @@ services:
       - python-service-green
       - node-service-blue
   node-frontend:
-    build:
-      context: .
-      dockerfile: node-frontend/Dockerfile
+    build: ./node-frontend
     ports:
       - "8080:8080"
     environment:
