@@ -1,0 +1,5 @@
+location="westeurope"
+project="DL"
+environment="DEV"
+region="EUR-WW"
+ACR_NAME="acrdevdl.azurecr.io"

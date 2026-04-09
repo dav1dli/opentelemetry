@@ -8,6 +8,8 @@ Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-insta
 
 *Note:* alternatives like brew installation will fail to pick Zscaler certificates automatically.
 
+Start Docker Desktop client to have docker service available for command line interactions.
+
 # Local environment
 In project root run `docker compose up --build`
 This command will print all outputs / logs to the console. To run in backgroud execute `docker compose up -d`

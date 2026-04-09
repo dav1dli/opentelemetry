@@ -5,3 +5,17 @@ npm-debug.log
 updateBranches.sh
 otelcol-contrib*
 grafana-collector-config.*
+# Local .terraform directories
+**/.terraform/*
+**/.terraform*
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
+*tfplan*
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc

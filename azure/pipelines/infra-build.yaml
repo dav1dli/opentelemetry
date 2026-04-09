@@ -1,0 +1,55 @@
+trigger:
+- main
+
+resources:
+- repo: self
+
+parameters:
+  - name: environment
+    displayName: Environment to manage
+    type: string
+    default: test
+    values:
+    - dev
+    - all
+
+variables:
+- template: ../conf/${{ parameters.environment }}/env.yaml
+
+stages:
+
+# Build the infrastructure
+- stage: Build
+  displayName: Build the infrastructure
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: AzureCLI@2
+      displayName: "Show resource group"
+      inputs:
+        azureSubscription: ${{ variables.SERVICE_CONNECTION }}
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          set -e
+          az group show -g ${{ variables.RESOURCE_GROUP }} | jq -r '.id'
+          export RG_ID=$(az group show -g ${{ variables.RESOURCE_GROUP }} | jq -r '.id')
+          echo "##vso[task.setvariable variable=rgId]${RG_ID}"
+    - task: AzureCLI@2
+      name: configTFAuth
+      displayName: "Configure Terraform Authentication"
+      inputs:
+        azureSubscription: ${{ variables.SERVICE_CONNECTION }}
+        scriptType: 'ps'
+        addSpnToEnvironment: true
+        scriptLocation: inlineScript
+        inlineScript: |
+          $subscription = az account show --query id --output tsv
+          $tenant = az account show --query tenantId --output tsv
+          Write-Host "##vso[task.setvariable variable=ARM_CLIENT_ID]$env:servicePrincipalId"
+          Write-Host "##vso[task.setvariable variable=ARM_CLIENT_SECRET]$env:servicePrincipalKey"
+          Write-Host "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]$subscription"
+          Write-Host "##vso[task.setvariable variable=ARM_TENANT_ID]$tenant"
