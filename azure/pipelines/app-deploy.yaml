@@ -1,4 +1,4 @@
-# Pipeline building the cloud infrastructure used by the application.
+# Pipeline deploying the application to the Azure cloud infrastructure.
 parameters:
   - name: environment
     displayName: Environment to manage
@@ -21,13 +21,11 @@ variables:
 - template: ../conf/${{ parameters.environment }}/env.yaml
 
 stages:
-
-# Build the infrastructure
-- stage: BuildInfa
-  displayName: Build the infrastructure
+- stage: DeployApp
+  displayName: Deploy the application
   jobs:
-  - job: BuildInfra
-    displayName: Build Infrastructure
+  - job: DeployApp
+    displayName: Deploy Application
     pool:
       vmImage: ubuntu-latest
     steps:
@@ -61,14 +59,14 @@ stages:
         scriptLocation: inlineScript
         inlineScript: |
           set -xe
-          terraform -chdir=azure/terraform/infra init \
+          terraform -chdir=azure/terraform/app init \
             -var-file=../../conf/${{ parameters.environment }}/env.tfvars \
-            -backend-config=../../conf/${{ parameters.environment }}/backend-infra.tfvars -input=false
+            -backend-config=../../conf/${{ parameters.environment }}/backend-app.tfvars -input=false
     - task: CmdLine@2
       displayName: TF Validate
       inputs:
         script: |
-          terraform -chdir=azure/terraform/infra validate
+          terraform -chdir=azure/terraform/app validate
     - ${{ if eq(parameters.action, 'destroy') }}:
       - task: AzureCLI@2
         displayName: TF Destroy
@@ -79,7 +77,7 @@ stages:
           scriptType: bash
           scriptLocation: inlineScript
           inlineScript: |
-            terraform -chdir=azure/terraform/infra destroy \
+            terraform -chdir=azure/terraform/app destroy \
               -var-file=../../conf/${{ parameters.environment }}/env.tfvars \
               -input=false -auto-approve
     - ${{ else }}:
@@ -91,9 +89,9 @@ stages:
           scriptType: bash
           scriptLocation: inlineScript
           inlineScript: |
-            terraform -chdir=azure/terraform/infra plan -input=false -detailed-exitcode \
+            terraform -chdir=azure/terraform/app plan -input=false -detailed-exitcode \
               -var-file=../../conf/${{ parameters.environment }}/env.tfvars \
-              -out=infra.tfplan
+              -out=app.tfplan -lock-timeout=1m
             exit_code=$?
             echo "INFO: exit_code: $exit_code"
             if [[ $exit_code -eq 0 ]]; then
@@ -116,7 +114,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
             if [ "$TERRAFORM_PLAN_HAS_CHANGES" = true ]; then
-              terraform -chdir=azure/terraform/infra apply infra.tfplan -input=false -auto-approve
+              terraform -chdir=azure/terraform/app apply app.tfplan
             else
               echo "No changes were discovered"
             fi

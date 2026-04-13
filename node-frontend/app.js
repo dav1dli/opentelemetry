@@ -3,8 +3,11 @@ const path = require("path");
 const createError = require("http-errors");
 const express = require("express");
 const logger = require("morgan");
+const helmet = require("helmet");
 
 const app = express();
+app.use(helmet());
+app.disable("x-powered-by");
 
 const indexRouter = require("./routes/index");
 
@@ -25,15 +28,25 @@ app.use((req, res, next) => {
 });
 
 // error handler
-// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get("env") === "development" ? err : {};
-  console.error(err);
-  // render the error page
-  res.status(err.status || 500);
-  return res.render("error");
+  const isDev = req.app.get("env") === "development";
+  const timestamp = new Date().toISOString();
+  
+  // Log the full error to the console (visible in ACA logs)
+  console.error(`[${timestamp}] UNCAUGHT_ERROR: ${err.stack || err.message}`);
+
+  res.status(err.response?.status || err.status || 500);
+  
+  // Determine user-friendly message
+  let message = "Something went wrong on our end.";
+  if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+    message = "Our backend services are temporarily unavailable. Please try again in a moment.";
+  }
+
+  res.render("error", {
+    message: isDev ? err.message : message,
+    error: isDev ? err : {}
+  });
 });
 
 module.exports = app;

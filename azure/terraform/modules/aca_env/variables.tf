@@ -1,16 +1,16 @@
 variable "resource_group_name" {
   description = "(Required) Specifies the resource group name"
-  type = string
+  type        = string
 }
 
 variable "location" {
   description = "(Required) Specifies the location of the Container App Environment"
-  type = string
+  type        = string
 }
 
 variable "name" {
   description = "(Required) Specifies the name of the Container App Environment"
-  type = string
+  type        = string
 }
 
 variable "log_analytics_workspace_id" {
@@ -33,5 +33,10 @@ variable "tags" {
 }
 variable "aca_user_identity_name" {
   description = "Specifies the name of the Container App User assigned identity"
-  type = string
+  type        = string
+}
+variable "infrastructure_resource_group_name" {
+  description = "Specifies the name of the Container App Environment infrastructure resource group."
+  type        = string
+  default     = ""
 }

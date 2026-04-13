@@ -13,12 +13,19 @@ resource "azurerm_container_app_environment" "aca_environment" {
   log_analytics_workspace_id     = var.log_analytics_workspace_id
   infrastructure_subnet_id       = var.infrastructure_subnet_id
   internal_load_balancer_enabled = var.internal_load_balancer_enabled
+  infrastructure_resource_group_name = var.infrastructure_resource_group_name
   tags                           = var.tags
   identity {
     type = "UserAssigned"
     identity_ids = [
       azurerm_user_assigned_identity.aca_user_identity.id
     ]
+  }
+  workload_profile {
+    maximum_count         = 0
+    minimum_count         = 0
+    name                  = "Consumption"
+    workload_profile_type = "Consumption"
   }
   lifecycle {
       ignore_changes = [

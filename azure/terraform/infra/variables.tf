@@ -73,7 +73,7 @@ variable "pep_subnet_address_prefix" {
 # ACR
 variable "acr_public" {
   description = "Allow ACR public access"
-  default     = false
+  default     = true
   type        = bool
 }
 variable "network_rule_set" {

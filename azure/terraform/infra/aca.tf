@@ -4,8 +4,7 @@ resource "azurerm_subnet" "aca_subnet" {
   resource_group_name  = local.rg_name
   virtual_network_name = module.vnet.name
   address_prefixes     = var.aca_subnet_address_prefix
-  service_endpoints    = []
-
+  service_endpoints    = ["Microsoft.Storage", "Microsoft.ContainerRegistry"]
   delegation {
     name = "delegation"
 
@@ -23,6 +22,7 @@ module "aca_environment" {
   log_analytics_workspace_id   = azurerm_log_analytics_workspace.log_analytics_workspace.id
   infrastructure_subnet_id     = azurerm_subnet.aca_subnet.id
   aca_user_identity_name       = local.aca_user_identity
+  infrastructure_resource_group_name = "ME_${local.aca_name}_${local.rg_name}_${var.location}"
 }
 resource "azurerm_private_dns_zone" "aca_env_private_dns_zone" {
   name                = module.aca_environment.default_domain

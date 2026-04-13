@@ -1,4 +1,3 @@
-# Use a slim version of Python
 FROM python:3.12-slim
 WORKDIR /app
 RUN useradd -m -u 1001 appuser
@@ -9,4 +8,4 @@ USER 1001
 EXPOSE 5000
 
 # Start the app
-CMD ["python", "app.py"]
+CMD ["opentelemetry-instrument", "python", "app.py"]

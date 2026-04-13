@@ -2,34 +2,68 @@ const express = require("express");
 const router = express.Router();
 const axios = require("axios");
 
-// Ensure the URL is trimmed and ready
-const GATEWAY_URL = (process.env.GATEWAY_URL || "http://127.0.0.1:3001").replace(/\/$/, "");
+// Ensure the URL is trimmed. In ACA, this will be http://python-service-gateway
+const GATEWAY_URL = (process.env.GATEWAY_URL || "http://127.0.0.1:5000").replace(/\/$/, "");
+
+// Configure a reusable axios instance with a timeout
+const gatewayClient = axios.create({
+  baseURL: GATEWAY_URL,
+  timeout: 5000, // 5 seconds
+});
 
 module.exports = () => {
-  router.get("/", async (req, res, next) => {
+  // --- Health Endpoint ---
+  router.get("/health", async (req, res) => {
+    const timestamp = new Date().toISOString();
     try {
-      // 1. Extract choice from the query string
-      const choice = req.query.choice || "";
+      // Check if Gateway is reachable
+      await gatewayClient.get("/health");
+      
+      console.log(`[${timestamp}] FRONTEND_HEALTH: Gateway reachable.`);
+      return res.status(200).json({
+        status: "UP",
+        gateway: "reachable",
+        timestamp
+      });
+    } catch (err) {
+      console.error(`[${timestamp}] FRONTEND_HEALTH_FAILURE: Gateway unreachable at ${GATEWAY_URL}. Error: ${err.message}`);
+      return res.status(503).json({
+        status: "DEGRADED",
+        gateway: "unreachable",
+        error: err.message,
+        timestamp
+      });
+    }
+  });
 
-      // 2. Validation
-      if (
-        choice &&
-        choice !== "spaces" &&
-        choice !== "tabs" &&
-        choice !== "clear"
-      ) {
-        return res.status(400).end();
-      }
+  // --- Main Route ---
+  router.get("/", async (req, res, next) => {
+    const { choice } = req.query;
 
-      // 3. Construct the URL using the variable we just defined
-      const targetUrl = `${GATEWAY_URL}/?choice=${choice}`;
+    // 1. Validation
+    if (choice && !["spaces", "tabs", "clear"].includes(choice)) {
+      return res.status(400).send("Invalid choice");
+    }
 
-      const { data } = await axios.get(targetUrl);
+    try {
+      // 2. Fetch data from Gateway
+      console.log(`[${new Date().toISOString()}] Routing request to Gateway: ${GATEWAY_URL}`);
+      const { data } = await gatewayClient.get("/", {
+        params: { choice }
+      });
 
-      // 4. Render the page with the data received from the gateway
+      // 3. Render
       return res.render("index", data);
     } catch (err) {
-      console.error(`Frontend failed to reach Gateway at ${GATEWAY_URL}: ${err.message}`);
+      // Specific logging for different failure modes
+      const timestamp = new Date().toISOString();
+      if (err.code === 'ECONNABORTED') {
+        console.error(`[${timestamp}] GATEWAY_TIMEOUT: Gateway at ${GATEWAY_URL} took too long to respond.`);
+      } else {
+        console.error(`[${timestamp}] GATEWAY_ERROR: Failed to reach ${GATEWAY_URL}. Message: ${err.message}`);
+      }
+      
+      // Pass the error to the global handler in app.js
       return next(err);
     }
   });
